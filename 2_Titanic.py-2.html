@@ -1,0 +1,360 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[690]:
+
+
+import numpy as np 
+import pandas as pd 
+import matplotlib.pyplot as plt
+import seaborn as sns
+get_ipython().run_line_magic('matplotlib', 'inline')
+import lazypredict
+
+#Importing  Models
+
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+from sklearn import preprocessing
+
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import r2_score
+from sklearn.metrics import classification_report
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import Perceptron
+from sklearn import svm
+import warnings
+
+#Reading Data
+
+test_df=pd.read_csv("/Users/vanichikaraddi/Documents/DataFlair/Titanic/test.csv")
+train_df=pd.read_csv("/Users/vanichikaraddi/Documents/DataFlair/Titanic/train.csv")
+test_df.info()
+
+
+# In[691]:
+
+
+#Exploring the data, Checking the Null Values in the data
+
+train_df.isnull().sum()
+
+
+# In[ ]:
+
+
+
+
+
+# In[692]:
+
+
+#Columns with Missing Values in Data
+
+columns_with_nan_train = train_df.columns[train_df.isna().any()].tolist()
+print("Columns with Missing Values in Train Dataset : ", columns_with_nan_train)
+
+
+# In[693]:
+
+
+print(test_df['PassengerId'])
+
+
+# In[694]:
+
+
+#For Age with null value column, replacing the mean value. 
+
+train_df['Age'].fillna(train_df['Age'].mean,inplace=True)
+test_df['Age'].fillna(test_df['Age'].mean,inplace=True)
+
+
+# In[695]:
+
+
+train_df.isnull().sum()
+
+
+# In[696]:
+
+
+# Checking total survived and not survived in total population. 
+
+from matplotlib import pyplot as plt
+fig, ax = plt.subplots(figsize=(8,6))
+plt.pie(train_df.Survived.value_counts(),
+       labels=["Survived","Did not Survive"],
+       shadow = True, 
+        explode = (0, 0.1))
+plt.show()
+
+
+# In[697]:
+
+
+# % survived people
+
+survived = train_df.loc[train_df.Survived == 1]["Survived"]
+rate_survival = sum(survived)/len(train_df)
+print("% of people who survived:", rate_survival)
+
+
+# In[698]:
+
+
+# Men and Women Survival %
+
+women = train_df.loc[train_df.Sex == 'female']["Survived"]
+rate_women = sum(women)/len(women)*100
+
+men = train_df.loc[train_df.Sex == 'male']["Survived"]
+rate_men = sum(men)/len(men)*100
+
+print("% of women who survived:", rate_women)
+print("% of men who survived:", rate_men)
+
+
+# In[699]:
+
+
+# Grouping by Survival
+
+train_df.groupby(["Survived"]).count()
+
+
+# In[700]:
+
+
+# Male, Female Distribution 
+
+train_df["Sex"].value_counts()
+
+
+# In[701]:
+
+
+train_df.head()
+
+
+# In[702]:
+
+
+# Replacing the categorical values into Numerical for Sex atribute for Modeling
+
+
+#train_df['Sex'] = train_df['Sex'].apply({1:'Male', 0:'Female'}.get)
+#train_df['Sex'].replace([0,1],['female','male'],inplace=True)
+#train_df['Sex'].replace({'female':0,'male':1},inplace=True)
+#print(train_df['Sex'].replace({0:'female',1:'male'},inplace=True))
+#print(data)
+train_df['Sex'].replace(['male','female'],[0,1],inplace=True)
+test_df['Sex'].replace(['male','female'],[0,1],inplace=True)
+#train_df.head()
+
+
+# In[703]:
+
+
+test_df.head()
+
+
+# In[704]:
+
+
+train_df.groupby('Embarked').count()
+
+train_df['Embarked'].replace(['C','Q','S'],[0,1,2],inplace=True)
+test_df['Embarked'].replace(['C','Q','S'],[0,1,2],inplace=True)
+
+
+# In[ ]:
+
+
+
+
+
+# In[705]:
+
+
+# Random Forest ensemble method
+
+from sklearn.ensemble import RandomForestClassifier
+
+#features = ["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked"]
+features = ["Pclass", "Sex","SibSp", "Parch"]
+x_train = train_df[features]
+x_test= test_df[features]
+#X = train_df.drop("Name", axis=1).copy()
+#X = train_df.drop("PassengerId", axis=1).copy()
+#X = pd.get_dummies(train_df[features])
+y_train = train_df["Survived"]
+x_train.head()
+
+
+# In[706]:
+
+
+
+x_train.info()
+
+
+# In[ ]:
+
+
+
+
+
+# In[707]:
+
+
+x_train.head()
+
+
+# In[708]:
+
+
+random_forest = RandomForestClassifier(n_estimators=40, min_samples_leaf=2, max_features=0.1, n_jobs=-1)
+random_forest.fit(x_train, y_train)
+Y_pred_Random = random_forest.predict(x_test)
+print("the train score of random_forest = ",round(random_forest.score(x_train, y_train) *100, 2),"%")
+
+
+# In[709]:
+
+
+predictions = random_forest.predict(x_test)
+output = pd.DataFrame({'PassengerId': test_df.PassengerId, 'Survived': predictions})
+output.to_csv('/Users/vanichikaraddi/Documents/DataFlair/Titanic/my_submission.csv', index=False)
+print("Your submission was successfully saved!")
+output.tail()
+
+
+# In[ ]:
+
+
+
+
+
+# In[710]:
+
+
+# Logistic Regression Method
+
+logistic_regression = LogisticRegression(solver='liblinear',max_iter=1000)
+logistic_regression.fit(x_train, y_train)
+Y_pred_Logistic = logistic_regression.predict(x_test)
+print("the train score of logistic_regression = ",round(logistic_regression.score(x_train, y_train) *100, 2),"%")
+
+
+# In[ ]:
+
+
+
+
+
+# In[711]:
+
+
+#Decision Tree Method
+
+tree = DecisionTreeClassifier(random_state=25)
+tree.fit(x_train, y_train)
+Y_pred_Tree= tree.predict(x_test)
+print("the score of prediction = ",round(tree.score(x_train, y_train) * 100,2), "%")
+
+
+# In[712]:
+
+
+scores= cross_val_score(tree, x_train, y_train, scoring="accuracy", cv=100)
+scores.mean()
+
+
+# In[713]:
+
+
+#stochastic gradient descent Method
+
+sgd_clf = SGDClassifier(random_state=42, max_iter=1000, tol=1e-3)
+sgd_clf.fit(x_train, y_train)
+Y_pred_SGD = sgd_clf.predict(x_test)
+print("the train score of SGD = ",round(sgd_clf.score(x_train, y_train) *100, 2),"%")
+
+
+# In[714]:
+
+
+#Support Vector method
+
+clf = svm.SVC(kernel = 'linear')
+clf.fit(x_train, y_train)
+Y_predict_svm = clf.predict(x_test)
+print("the score of prediction = ",round(clf.score(x_train, y_train) * 100,2), "%")
+
+
+# In[715]:
+
+
+# K Neighbour method
+
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(x_train, y_train)
+Y_pred_KNN= knn.predict(x_test)
+print("the score of prediction = ",round(knn.score(x_train, y_train) * 100,2), "%")
+
+
+# In[716]:
+
+
+output_csv = {"PassengerId":[*range(892,892+len(Y_pred_KNN))], "Survived":Y_pred_KNN}
+Y_pre = pd.DataFrame(output_csv)
+Y_pre.set_index("PassengerId", drop=True, append=False, inplace=True)
+#Y_pre.to_csv("/kaggle/working/submission.csv")
+
+
+# In[717]:
+
+
+gaussian = GaussianNB()
+gaussian.fit(x_train, y_train)
+Y_pred_gaussian = gaussian.predict(x_test)
+print("the train score for Gaussian = ", round(gaussian.score(x_train, y_train) * 100, 2), "%")
+
+
+# In[718]:
+
+
+perceptron = Perceptron()
+perceptron.fit(x_train, y_train)
+Y_pred_perceptron = perceptron.predict(x_test)
+print("the train score for Perceptron = ",round(perceptron.score(x_train, y_train) * 100, 2), "%")
+
+
+# In[719]:
+
+
+# Listing the Different Method and their respective scores
+
+model = ["SGDClassifier", "Random Forest", "Logistic Regression", "Decision Tree", "SVM",
+"KNeighbors", "GaussianNB", "Perceptron"]
+score = [78.45, 81.4, 80.02, 81.71, 78.68, 80.07, 76.43, 78.68]
+data_dict = {"models": model, "test_score": score}
+data_score = pd.DataFrame(data_dict)
+data_score.index = data_score.index + 1
+data_score.sort_values("test_score",ascending=False)
+
+
+# In[ ]:
+
+
+
+
